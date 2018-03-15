@@ -6,46 +6,47 @@ namespace TP.Utilities
     public enum ModifierType
     {
         Flat,
+        FlatMultiply,
         Percentage
     }
 
-    public enum ModifierCommand
-    {
-        Increase,
-        Decrease,
-        Multiply
-    }
-
     [System.Serializable]
-    public class TPModifier
+    public struct TPModifier
     {
         public ModifierType Type;
-        public ModifierCommand Command;
         public float Value;
         public int Priority;
+        public object Source;
 
-        public TPModifier(ModifierType modifierType, ModifierCommand modifierCommand, float modifierValue, int modifierPriority)
+        public TPModifier(ModifierType modifierType, float modifierValue, int modifierPriority, object modifierSource)
         {
             Type = modifierType;
-            Command = modifierCommand;
             Value = modifierValue;
             Priority = modifierPriority;
+            Source = modifierSource;
         }
 
-        public TPModifier(ModifierType modifierType, ModifierCommand modifierCommand, float modifierValue) : this(modifierType, modifierCommand, modifierValue, 0) { }
+        public TPModifier(ModifierType modifierType, float modifierValue, int modifierPriority) : this(modifierType, modifierValue, modifierPriority, null) { }
+        public TPModifier(ModifierType modifierType, float modifierValue, object modifierSource) : this(modifierType, modifierValue, 0, modifierSource) { }
+        public TPModifier(ModifierType modifierType, float modifierValue) : this(modifierType, modifierValue, 0, null) { }
     }
 
     [System.Serializable]
     public class TPAttribute
     {
+        /// <summary>
+        /// It's start, base value, without any modifiers
+        /// </summary>
         public float BaseValue { get; set; }
+        /// <summary>
+        /// It's calculated value, with all modifiers in list
+        /// </summary>
         public float Value { get; set; }
-        public float MaxValue { get; set; }
-
-        readonly List<TPModifier> _modifiers = new List<TPModifier>();
 
         public delegate void OnChangeHandler();
-
+        /// <summary>
+        /// It's delegate, called after value has changed
+        /// </summary>
         public OnChangeHandler OnChanged
         {
             get
@@ -58,6 +59,12 @@ namespace TP.Utilities
             set { OnChanged = value; }
         }
 
+        readonly List<TPModifier> _modifiers = new List<TPModifier>();
+
+        /// <summary>
+        /// Adds struct TPModifier to list of modifiers, sorts modifiers, recalculates Value
+        /// </summary>
+        /// <param name="modifier"></param>
         public void AddModifier(TPModifier modifier)
         {
             _modifiers.Add(modifier);
@@ -65,16 +72,38 @@ namespace TP.Utilities
             Recalculate();
         }
 
+        /// <summary>
+        /// Removes struct TPModifier from list of modifiers, sorts modifiers, recalculates Value
+        /// </summary>
+        /// <param name="modifier"></param>
         public void RemoveModifier(TPModifier modifier)
         {
             _modifiers.Remove(modifier);
             Recalculate();
         }
 
+        /// <summary>
+        /// Removes all modifiers from attribute, recalculates Value
+        /// </summary>
         public void RemoveAllModifiers()
         {
             _modifiers.Clear();
             Recalculate();
+        }
+
+        /// <summary>
+        /// Removes all modifiers from attribute by source object, recalculates Value
+        /// </summary>
+        /// <param name="source">object declared in constructor of TPModifier</param>
+        public void RemoveAllModifiers(object source)
+        {
+            foreach (var modifier in _modifiers)
+            {
+                if(modifier.Source == source)
+                {
+                    _modifiers.Remove(modifier);
+                }
+            }
         }
 
         int CompareModifiers(TPModifier modifier1, TPModifier modifier2)
@@ -95,18 +124,16 @@ namespace TP.Utilities
             Value = BaseValue;
             foreach (var modifier in _modifiers)
             {
-                var modifyValue = modifier.Type == ModifierType.Flat ? modifier.Value : Mathf.CeilToInt((Value / modifier.Value) * 100);
-
-                switch (modifier.Command)
+                switch (modifier.Type)
                 {
-                    case ModifierCommand.Increase:
-                        Value = Value += modifyValue;
+                    case ModifierType.Flat:
+                        Value += modifier.Value;
                         break;
-                    case ModifierCommand.Decrease:
-                        Value = Value -= modifyValue;
+                    case ModifierType.FlatMultiply:
+                        Value *= modifier.Value;
                         break;
-                    case ModifierCommand.Multiply:
-                        Value = Value *= modifyValue;
+                    case ModifierType.Percentage:
+                        Value *= (1 + modifier.Value);
                         break;
                 }
             }
