@@ -1,17 +1,16 @@
 ﻿﻿using System.Collections.Generic;
-using UnityEngine;
 
 namespace TP.Utilities
 {
     public enum ModifierType
     {
-        Flat,
-        FlatMultiply,
-        Percentage
+        Flat = 3,
+        FlatMultiply = 2,
+        Percentage = 1
     }
 
     [System.Serializable]
-    public struct TPModifier
+    public class TPModifier
     {
         public ModifierType Type;
         public float Value;
@@ -27,11 +26,10 @@ namespace TP.Utilities
         }
 
         public TPModifier(ModifierType modifierType, float modifierValue, int modifierPriority) : this(modifierType, modifierValue, modifierPriority, null) { }
-        public TPModifier(ModifierType modifierType, float modifierValue, object modifierSource) : this(modifierType, modifierValue, 0, modifierSource) { }
-        public TPModifier(ModifierType modifierType, float modifierValue) : this(modifierType, modifierValue, 0, null) { }
+        public TPModifier(ModifierType modifierType, float modifierValue, object modifierSource) : this(modifierType, modifierValue, (int)modifierType, modifierSource) { }
+        public TPModifier(ModifierType modifierType, float modifierValue) : this(modifierType, modifierValue, (int)modifierType, null) { }
     }
-
-    [System.Serializable]
+    
     public class TPAttribute
     {
         /// <summary>
@@ -62,7 +60,7 @@ namespace TP.Utilities
         readonly List<TPModifier> _modifiers = new List<TPModifier>();
 
         /// <summary>
-        /// Adds struct TPModifier to list of modifiers, sorts modifiers, recalculates Value
+        /// Adds TPModifier to list of modifiers, sorts modifiers, recalculates Value
         /// </summary>
         /// <param name="modifier"></param>
         public void AddModifier(TPModifier modifier)
@@ -73,7 +71,7 @@ namespace TP.Utilities
         }
 
         /// <summary>
-        /// Removes struct TPModifier from list of modifiers, sorts modifiers, recalculates Value
+        /// Removes TPModifier from list of modifiers, sorts modifiers, recalculates Value
         /// </summary>
         /// <param name="modifier"></param>
         public void RemoveModifier(TPModifier modifier)
